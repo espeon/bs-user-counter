@@ -16,15 +16,6 @@ const config: Config = {
       },
     },
     extend: {
-      keyframes: {
-        ticker: {
-          '0%': { transform: 'translateY(0)' },
-          '100%': { transform: 'translateY(-50%)' }, // Adjust this to match the total height
-        },
-      },
-      animation: {
-        ticker: 'ticker .0000000001s linear infinite',
-      },
       colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
@@ -74,10 +65,15 @@ const config: Config = {
           from: { height: 'var(--radix-accordion-content-height)' },
           to: { height: '0' },
         },
+        ticker: {
+          '0%': { transform: 'translateY(0)' },
+          '100%': { transform: 'translateY(-50%)' }, // Adjust this to match the total height
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        ticker: 'ticker .0000000001s linear infinite',
       },
     },
   },
