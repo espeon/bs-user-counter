@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   try {
     const response = await fetch(
-      'https://test.cors.workers.dev/?https://bsky-search.jazco.io/stats'
+      'https://bsky-search.jazco.io/stats'
     );
     const data = await response.json();
 
