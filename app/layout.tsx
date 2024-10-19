@@ -8,8 +8,8 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const mono = IBM_Plex_Mono({ weight: "400", subsets: ["latin"], variable: "--font-dm-mono" });
 
 export const metadata: Metadata = {
-  title: "Bluesky User Counter",
-  description: "Real-time Bluesky user count with interpolation",
+  title: "Bcounter",
+  description: "Almost-real-time Bluesky user count",
 };
 
 export default function RootLayout({
