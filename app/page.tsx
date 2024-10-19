@@ -39,11 +39,6 @@ export default function Home() {
       // Update the user count, bar max, and last update time
       if(data.users_growth_rate_per_second) {
       setGrowthRate((data.users_growth_rate_per_second ?? 3.45) * UPDATE_TIME/1000)
-      } else if (lastUpdateResponse != 0) {
-        // calculate growth rate based on last update time
-        const elapsedTime = Date.parse(data.last_update_time) - lastUpdateResponse;
-        const growthRate = (newUserCount - userCount) / elapsedTime;
-        setGrowthRate(growthRate);
       }
       if (userCount !== newUserCount) {
         setUserCount(newUserCount);
