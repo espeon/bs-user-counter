@@ -15,64 +15,80 @@ function roundToNextMilestone(num: number) {
 
 export default function Home() {
   const [userCount, setUserCount] = useState(0);
-  const [lastUserCount, setLastUserCount] = useState(0);
+  const [lastUpdateResponse, setLastUpdateResponse] = useState(0);
   const [interpolatedCount, setInterpolatedCount] = useState(0);
   const [barMax, setBarMax] = useState(100);
   const [progressUntilNextUpdate, setProgressUntilNextUpdate] = useState(0);
   const [nextUpdateTime, setNextUpdateTime] = useState(Date.now());
-  const [growthRate, setGrowthRate] = useState(2.34 * 60); // Default to 4.5 users per second
+  const [growthRate, setGrowthRate] = useState(0); // Default to 4.5 users per second
 
   // We get updates every 20 seconds
   const UPDATE_INTERVAL = 60000;
   // API updates every 60 seconds
   const UPDATE_TIME = 60000;
+  
+  const fetchData = async () => {
+    try {
+      const response = await fetch("https://bsky-stats.deno.dev/");
+      const data = await response.json();
+      console.log(data);
+
+      const newUserCount = data.total_users;
+      let nextUpdate = Date.parse(data.last_update_time) + UPDATE_TIME;
+
+      // Update the user count, bar max, and last update time
+      if(data.users_growth_rate_per_second) {
+      setGrowthRate((data.users_growth_rate_per_second ?? 3.45) * UPDATE_TIME/1000)
+      } else if (lastUpdateResponse != 0) {
+        // calculate growth rate based on last update time
+        const elapsedTime = Date.parse(data.last_update_time) - lastUpdateResponse;
+        const growthRate = (newUserCount - userCount) / elapsedTime;
+        setGrowthRate(growthRate);
+      }
+      if (userCount !== newUserCount) {
+        setUserCount(newUserCount);
+        setBarMax(roundToNextMilestone(newUserCount));
+        // set the last response
+        setLastUpdateResponse(Date.parse(data.last_update_time));
+        console.log('setting next update time', nextUpdate);
+        setNextUpdateTime(nextUpdate);
+      }
+
+      // Align our requests with the API's update time, provide an offset to the next update time
+      const offset = -Math.floor((Date.now() - nextUpdate) / 1000);
+      console.log("Our offset is", offset);
+      return offset;
+    } catch (error) {
+      console.error("Error fetching user count:", error);
+      return 0; // In case of error, use 0 offset to avoid delays
+    }
+  };
+
+
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
     let timeoutId: NodeJS.Timeout;
-  
-    const fetchData = async () => {
-      try {
-        const response = await fetch("https://bsky-stats.deno.dev/");
-        const data = await response.json();
-        console.log(data);
-  
-        const newUserCount = data.total_users;
-        let nextUpdate = Date.parse(data.last_update_time) + UPDATE_TIME;
-  
-        // Update the user count, bar max, and last update time
-        if (userCount !== 0 && userCount !== newUserCount) {
-          setLastUserCount(userCount);
-        } else {
-          setGrowthRate(data.users_growth_rate_per_second * UPDATE_TIME/1000)
-        }
-        if (userCount !== newUserCount) {
-          setUserCount(newUserCount);
-          setBarMax(roundToNextMilestone(newUserCount));
-          console.log('setting next update time', nextUpdate);
-          setNextUpdateTime(nextUpdate);
-        }
-  
-        // Align our requests with the API's update time, provide an offset to the next update time
-        const offset = -Math.floor((Date.now() - nextUpdate) / 1000);
-        console.log("Our offset is", offset);
-        return offset;
-      } catch (error) {
-        console.error("Error fetching user count:", error);
-        return 0; // In case of error, use 0 offset to avoid delays
-      }
-    };
-  
     const initiateFetching = async () => {
-      const offset = await fetchData();
-      console.log("Offset before next fetch:", offset);
-  
-      // Delay next fetch based on the offset
-      timeoutId = setTimeout(() => {
-        fetchData();
-  
-        // Set regular interval fetching
-        intervalId = setInterval(fetchData, UPDATE_INTERVAL);
-      }, (offset ?? 0) * 1000);
+      try {
+        const offset = await fetchData();
+        console.log("Offset before next fetch:", offset);
+    
+        // Clear any existing timeouts to avoid overlap
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+    
+        // Delay next fetch based on the offset
+        timeoutId = setTimeout(() => {
+          initiateFetching();
+        }, (offset ?? 0) * 1000 + 30);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        // Optionally, retry after a fixed timeout on error
+        timeoutId = setTimeout(() => {
+          initiateFetching();
+        }, 5000); // Retry in 5 seconds if fetch fails
+      }
     };
   
     // Start the fetching process
@@ -84,18 +100,6 @@ export default function Home() {
       clearInterval(intervalId);
     };
   }, [userCount]);
-  
-
-  useEffect(() => {
-    if (userCount > 0 && lastUserCount > 0) {
-      const currentTime = Date.now();
-      // Calculate time difference between current time and API last update time (in seconds)
-      // Calculate new growth rate (users per second)
-      const newGrowthRate = userCount - lastUserCount;
-      console.log("calculated new growth rate based on incoming data:", newGrowthRate , "users per minute");
-      setGrowthRate(newGrowthRate); // Update growth rate
-    }
-  }, [userCount, nextUpdateTime]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -172,15 +176,11 @@ export default function Home() {
             <div className="text-xs text-muted-foreground mt-2">
             <AnimatedCounter
                     className="inline-flex"
-                    decimalPrecision={3}
+                    decimalPrecision={5}
                     value={userCount == 0
                       ? 0
-                      : (
-                          ((interpolatedCount +
-                            growthRate * (progressUntilNextUpdate / 100)) /
-                            barMax) *
-                          100
-                        )}
+                      : (userCount + growthRate * (progressUntilNextUpdate / 100)) / barMax * 100
+                        }
                     showColorsWhenValueChanges={false}
                   />
               % of {Intl.NumberFormat().format(barMax)} users
@@ -200,8 +200,13 @@ export default function Home() {
                     (UPDATE_TIME -
                       (progressUntilNextUpdate / 100) * UPDATE_TIME) /
                       1000
-                  )}
-                  s
+                  ) < 0 ? <div className="loader" /> :
+                  Math.ceil(
+                    (UPDATE_TIME -
+                      (progressUntilNextUpdate / 100) * UPDATE_TIME) /
+                      1000
+                  )
+                  + "s"}
                 </div>
                 <Progress
                   value={progressUntilNextUpdate}
@@ -212,6 +217,7 @@ export default function Home() {
                   <AnimatedCounter
                     className="inline-flex"
                     decimalPrecision={1}
+                    padNumber={5}
                     value={growthRate * (progressUntilNextUpdate / 100)}
                     showColorsWhenValueChanges={false}
                   />{" "}
@@ -228,7 +234,6 @@ export default function Home() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {lastUserCount == 0 && "~"}
                   <AnimatedCounter
                     className="inline-flex"
                     value={growthRate/UPDATE_TIME * 1000}
@@ -236,11 +241,6 @@ export default function Home() {
                 </div>
                 <div className="text-xs text-muted-foreground mt-2">
                   Users per second{" "}
-                  {lastUserCount == 0 && (
-                    <>
-                      (Estimated, based on historical data. Value will be used until next update.)
-                    </>
-                  )}
                 </div>
               </CardContent>
             </Card>

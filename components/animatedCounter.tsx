@@ -99,7 +99,7 @@ const NumberColumn = memo(
 
     return (
       <div
-        className="relative tabular-nums"
+        className="relative tabular-nums overflow-hidden"
         ref={columnContainer}
         style={
           {
@@ -112,7 +112,7 @@ const NumberColumn = memo(
         <div
           className={`absolute w-full flex flex-col ${animationClass} ${
             animationClass ? 'animate-move' : ''
-          } transition-all duration-300`}
+          } transition-all duration-300 ease-in-out`}
           style={
             {
               transform: `translateY(-${position}px)`,
@@ -172,7 +172,7 @@ const AnimatedCounter = ({
 
   return (
     <div
-      className={`relative flex flex-wrap transition-all tabular-nums duration-300 ${className}`}
+      className={`relative flex flex-wrap transition-all tabular-nums ${className}`}
       style={{ ...containerStyles }}
     >
       {/* If number is negative, render '-' feedback */}
