@@ -19,62 +19,87 @@ export default function Home() {
   const [interpolatedCount, setInterpolatedCount] = useState(0);
   const [barMax, setBarMax] = useState(100);
   const [progressUntilNextUpdate, setProgressUntilNextUpdate] = useState(0);
-  const [lastUpdateTime, setLastUpdateTime] = useState(Date.now());
+  const [nextUpdateTime, setNextUpdateTime] = useState(Date.now());
   const [growthRate, setGrowthRate] = useState(2.34 * 60); // Default to 4.5 users per second
 
-  const UPDATE_INTERVAL = 60000; // 1 minute in milliseconds
-
+  // We get updates every 20 seconds
+  const UPDATE_INTERVAL = 60000;
+  // API updates every 60 seconds
+  const UPDATE_TIME = 60000;
   useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+    let timeoutId: NodeJS.Timeout;
+  
     const fetchData = async () => {
       try {
         const response = await fetch("https://bsky-stats.deno.dev/");
         const data = await response.json();
-
+        console.log(data);
+  
         const newUserCount = data.total_users;
-
+        let nextUpdate = Date.parse(data.last_update_time) + UPDATE_TIME;
+  
         // Update the user count, bar max, and last update time
-        if (userCount != 0 && userCount != newUserCount) {
+        if (userCount !== 0 && userCount !== newUserCount) {
           setLastUserCount(userCount);
+        } else {
+          setGrowthRate(data.users_growth_rate_per_second * UPDATE_TIME/1000)
         }
-        setUserCount(newUserCount);
-        setBarMax(roundToNextMilestone(newUserCount));
-        setLastUpdateTime(Date.now());
+        if (userCount !== newUserCount) {
+          setUserCount(newUserCount);
+          setBarMax(roundToNextMilestone(newUserCount));
+          console.log('setting next update time', nextUpdate);
+          setNextUpdateTime(nextUpdate);
+        }
+  
+        // Align our requests with the API's update time, provide an offset to the next update time
+        const offset = -Math.floor((Date.now() - nextUpdate) / 1000);
+        console.log("Our offset is", offset);
+        return offset;
       } catch (error) {
         console.error("Error fetching user count:", error);
+        return 0; // In case of error, use 0 offset to avoid delays
       }
     };
-
-    fetchData(); // Initial fetch
-    const interval = setInterval(fetchData, UPDATE_INTERVAL); // Fetch every 60 seconds
-
-    return () => clearInterval(interval);
+  
+    const initiateFetching = async () => {
+      const offset = await fetchData();
+      console.log("Offset before next fetch:", offset);
+  
+      // Delay next fetch based on the offset
+      timeoutId = setTimeout(() => {
+        fetchData();
+  
+        // Set regular interval fetching
+        intervalId = setInterval(fetchData, UPDATE_INTERVAL);
+      }, (offset ?? 0) * 1000);
+    };
+  
+    // Start the fetching process
+    initiateFetching();
+  
+    // Cleanup: clear the timeout and interval on component unmount or update
+    return () => {
+      clearTimeout(timeoutId);
+      clearInterval(intervalId);
+    };
   }, [userCount]);
+  
 
   useEffect(() => {
     if (userCount > 0 && lastUserCount > 0) {
       const currentTime = Date.now();
       // Calculate time difference between current time and API last update time (in seconds)
-      // For now use 60 seconds
       // Calculate new growth rate (users per second)
       const newGrowthRate = userCount - lastUserCount;
       console.log("calculated new growth rate based on incoming data:", newGrowthRate , "users per minute");
       setGrowthRate(newGrowthRate); // Update growth rate
     }
-  }, [userCount, lastUpdateTime]);
+  }, [userCount, nextUpdateTime]);
 
   useEffect(() => {
     const timer = setInterval(() => {
-      const elapsedTime = Date.now() - lastUpdateTime;
-
-      // Calculate time remaining in seconds until the next update
-      // Set ranges for it too
-      const timeRemaining = Math.min(
-        Math.max(
-          Math.ceil((UPDATE_INTERVAL - elapsedTime) / 1000), // Convert from ms to seconds
-          0
-        ),
-        100
-      );
+      const elapsedTime = Date.now() - nextUpdateTime;
 
       // Estimate current user count based on growth rate
       const estimatedGrowth = (growthRate * elapsedTime) / 1000;
@@ -82,16 +107,19 @@ export default function Home() {
     }, 100);
 
     return () => clearInterval(timer);
-  }, [lastUpdateTime, userCount, growthRate]);
+  }, [nextUpdateTime, userCount, growthRate]);
 
   useEffect(() => {
     const timer = setInterval(() => {
       if (userCount == 0) {
         return;
       }
-      const elapsedTime = Date.now() - lastUpdateTime;
-      const progress = (elapsedTime / UPDATE_INTERVAL) * 100;
-      setProgressUntilNextUpdate(Math.min(progress, 100));
+      // time left until next update
+      const elapsedTime = nextUpdateTime - Date.now();
+      //console.log(elapsedTime)
+      const progress = 100 - Math.min(elapsedTime / UPDATE_TIME, 1) * 100;
+      // if elapsed time is negative force an update
+      setProgressUntilNextUpdate(progress);
 
       // Estimate current user count based on growth rate
       const estimatedGrowth = (growthRate * elapsedTime) / 1000;
@@ -99,7 +127,7 @@ export default function Home() {
     }, 100);
 
     return () => clearInterval(timer);
-  }, [lastUpdateTime, userCount, growthRate]);
+  }, [nextUpdateTime, userCount, growthRate]);
 
   return (
     <div className="container mx-auto w-screen max-w-screen h-screen">
@@ -169,8 +197,8 @@ export default function Home() {
               <CardContent>
                 <div className="text-2xl font-bold">
                   {Math.ceil(
-                    (UPDATE_INTERVAL -
-                      (progressUntilNextUpdate / 100) * UPDATE_INTERVAL) /
+                    (UPDATE_TIME -
+                      (progressUntilNextUpdate / 100) * UPDATE_TIME) /
                       1000
                   )}
                   s
@@ -203,7 +231,7 @@ export default function Home() {
                   {lastUserCount == 0 && "~"}
                   <AnimatedCounter
                     className="inline-flex"
-                    value={growthRate / 60}
+                    value={growthRate/UPDATE_TIME * 1000}
                   />
                 </div>
                 <div className="text-xs text-muted-foreground mt-2">
