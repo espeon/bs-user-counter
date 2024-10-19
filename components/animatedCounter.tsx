@@ -172,7 +172,7 @@ const AnimatedCounter = ({
 
   return (
     <div
-      className={`relative flex flex-wrap transition-all duration-300 ${className}`}
+      className={`relative flex flex-wrap transition-all tabular-nums duration-300 ${className}`}
       style={{ ...containerStyles }}
     >
       {/* If number is negative, render '-' feedback */}

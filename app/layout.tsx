@@ -1,9 +1,11 @@
 import "./globals.css";
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, IBM_Plex_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+
+const mono = IBM_Plex_Mono({ weight: "400", subsets: ["latin"], variable: "--font-dm-mono" });
 
 export const metadata: Metadata = {
   title: "Bluesky User Counter",
@@ -17,7 +19,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={inter.className + "," + mono.className}>
         <ThemeProvider defaultTheme="system" attribute="class">
           {children}
         </ThemeProvider>

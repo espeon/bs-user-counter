@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Clock, TrendingUp } from "lucide-react";
 import AnimatedCounter from "@/components/animatedCounter";
 import Link from "next/link";
+import { ThemeSwitcher } from "@/components/themeSwitcher";
 
 function roundToNextMilestone(num: number) {
   const magnitude = Math.pow(10, Math.floor(Math.log10(num)));
@@ -50,14 +51,13 @@ export default function Home() {
   }, [userCount]);
 
   useEffect(() => {
-    console.log(userCount, lastUserCount);
     if (userCount > 0 && lastUserCount > 0) {
       const currentTime = Date.now();
       // Calculate time difference between current time and API last update time (in seconds)
       // For now use 60 seconds
       // Calculate new growth rate (users per second)
       const newGrowthRate = userCount - lastUserCount;
-      console.log("newGrowthRate", newGrowthRate);
+      console.log("calculated new growth rate based on incoming data:", newGrowthRate , "users per minute");
       setGrowthRate(newGrowthRate); // Update growth rate
     }
   }, [userCount, lastUpdateTime]);
@@ -65,7 +65,6 @@ export default function Home() {
   useEffect(() => {
     const timer = setInterval(() => {
       const elapsedTime = Date.now() - lastUpdateTime;
-      const progress = (elapsedTime / UPDATE_INTERVAL) * 100;
 
       // Calculate time remaining in seconds until the next update
       // Set ranges for it too
@@ -104,22 +103,30 @@ export default function Home() {
 
   return (
     <div className="container mx-auto w-screen max-w-screen h-screen">
-      <div className="grid place-items-center h-full w-full">
+      <div className="md:grid place-items-center h-full w-full  pt-4 md:pt-0">
         <div>
-          <div className="min-w-[8rem] max-w-screen-md pb-4 mt-16 md:mt-0">
-            <div className="text-5xl md:text-6xl lg:text-8xl font-semibold text-blue-500">
-              <AnimatedCounter
-                value={Math.floor(
-                  userCount + growthRate * (progressUntilNextUpdate / 100)
-                )}
-                includeCommas={true}
-                includeDecimals={false}
-                className="text-blue-500"
-                showColorsWhenValueChanges={false}
-              />
-            </div>
-            <div className="text-lg text-muted-foreground mt-2 mb-1">
-              users on Bluesky
+          <div className="min-w-[8rem] max-w-screen-md pb-4">
+            <div className="flex flex-col md:flex-row-reverse items-left justify-between">
+              <div className="flex flex-row items-start justify-between pb-16 md:pb-0">
+                <div />
+                <ThemeSwitcher />
+              </div>
+              <div>
+                <div className="text-5xl md:text-6xl lg:text-8xl font-semibold text-blue-500">
+                  <AnimatedCounter
+                    value={Math.floor(
+                      userCount + growthRate * (progressUntilNextUpdate / 100)
+                    )}
+                    includeCommas={true}
+                    includeDecimals={false}
+                    className="text-blue-500 tabular-nums"
+                    showColorsWhenValueChanges={false}
+                  />
+                </div>
+                <div className="text-lg text-muted-foreground mt-2 mb-1">
+                  users on Bluesky
+                </div>
+              </div>
             </div>
             <Progress
               value={
@@ -134,17 +141,22 @@ export default function Home() {
               }
               className="h-2"
             />
-            <p className="text-xs text-muted-foreground mt-2">
-              {userCount == 0
-                ? 0
-                : (
-                    ((interpolatedCount +
-                      growthRate * (progressUntilNextUpdate / 100)) /
-                      barMax) *
-                    100
-                  ).toFixed(2)}
+            <div className="text-xs text-muted-foreground mt-2">
+            <AnimatedCounter
+                    className="inline-flex"
+                    decimalPrecision={3}
+                    value={userCount == 0
+                      ? 0
+                      : (
+                          ((interpolatedCount +
+                            growthRate * (progressUntilNextUpdate / 100)) /
+                            barMax) *
+                          100
+                        )}
+                    showColorsWhenValueChanges={false}
+                  />
               % of {Intl.NumberFormat().format(barMax)} users
-            </p>
+            </div>
           </div>
           <div className="grid gap-4 md:grid-cols-2 max-w-screen-md md:w-screen">
             <Card className="max-w-full">
@@ -167,11 +179,13 @@ export default function Home() {
                   value={progressUntilNextUpdate}
                   className="h-2 mt-4"
                 />
-                <div className="text-xs text-muted-foreground mt-2 inline-flex">
+                <div className="text-xs text-muted-foreground mt-2">
                   Estimated growth:{" "}
                   <AnimatedCounter
-                    className="mx-1"
+                    className="inline-flex"
+                    decimalPrecision={1}
                     value={growthRate * (progressUntilNextUpdate / 100)}
+                    showColorsWhenValueChanges={false}
                   />{" "}
                   users since last update
                 </div>
@@ -187,22 +201,24 @@ export default function Home() {
               <CardContent>
                 <div className="text-2xl font-bold">
                   {lastUserCount == 0 && "~"}
-                  {(growthRate / 60).toFixed(2)}
+                  <AnimatedCounter
+                    className="inline-flex"
+                    value={growthRate / 60}
+                  />
                 </div>
-                <p className="text-xs text-muted-foreground mt-2">
+                <div className="text-xs text-muted-foreground mt-2">
                   Users per second{" "}
                   {lastUserCount == 0 && (
                     <>
-                      <br />
-                      (estimated, based on historical data.)
+                      (Estimated, based on historical data. Value will be used until next update.)
                     </>
                   )}
-                </p>
+                </div>
               </CardContent>
             </Card>
           </div>
           <div className="text-sm text-muted-foreground mt-2">
-            hello from{" "}
+            👋 from{" "}
             <Link
               className="text-blue-500"
               href="https://bsky.app/profile/natalie.sh"
@@ -218,7 +234,7 @@ export default function Home() {
             </Link>
             {"'s "}
             <Link className="text-blue-500" href="https://bsky.jazco.dev/stats">
-              bsky stats.
+              bsky stats.{" "}
             </Link>
             very inspired by{" "}
             <Link
