@@ -29,7 +29,7 @@ export default function Home() {
   
   const fetchData = async () => {
     try {
-      const response = await fetch("https://bsky-stats.deno.dev/");
+      const response = await fetch("https://bsky-stats.lut.li/");
       const data = await response.json();
       console.log(data);
 
