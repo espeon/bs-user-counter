@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Clock, TrendingUp } from "lucide-react";
+import { CircleAlert, Clock, MessageCircleWarning, TrendingUp, TriangleAlert } from "lucide-react";
 import AnimatedCounter from "@/components/animatedCounter";
 import Link from "next/link";
 import { ThemeSwitcher } from "@/components/themeSwitcher";
@@ -37,7 +37,7 @@ export default function Home() {
       let nextUpdate = Date.parse(data.last_update_time) + UPDATE_TIME;
 
       // Update the user count, bar max, and last update time
-      if(data.users_growth_rate_per_second) {
+      if(data.users_growth_rate_per_second != null) {
       setGrowthRate((data.users_growth_rate_per_second ?? 3.45) * UPDATE_TIME/1000)
       }
       if (userCount !== newUserCount) {
@@ -135,10 +135,12 @@ export default function Home() {
           <div className="min-w-[8rem] max-w-screen-md pb-4">
             <div className="flex flex-col md:flex-row-reverse items-left justify-between">
               <div className="flex flex-row items-start justify-between pb-16 md:pb-0">
-                <div />
                 <ThemeSwitcher />
               </div>
               <div>
+              <div className="px-2 py-1 rounded-full bg-yellow-500 text-black flex flex-row items-center justify-center">
+                  <TriangleAlert className="w-4 h-4 mr-2" /> There is an API issue. The numbers displayed may be inaccurate.
+                </div>
                 <div className="text-5xl md:text-6xl lg:text-8xl font-semibold text-blue-500">
                   <AnimatedCounter
                     value={Math.floor(
