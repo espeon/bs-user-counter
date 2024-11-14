@@ -139,7 +139,7 @@ export default function Home() {
               </div>
               <div>
               <div className="px-2 py-1 rounded-full bg-yellow-500 text-black flex flex-row items-center justify-center">
-                  <TriangleAlert className="w-4 h-4 mr-2" /> There is an API issue. The numbers displayed may be inaccurate.
+                  <TriangleAlert className="w-4 h-4 mr-2" /> There is a backend issue. The numbers displayed may be inaccurate.
                 </div>
                 <div className="text-5xl md:text-6xl lg:text-8xl font-semibold text-blue-500">
                   <AnimatedCounter
