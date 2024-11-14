@@ -56,7 +56,11 @@ export default function Home() {
       const nextUpdateTime = Date.parse(data.next_update_time);
 
       console.log("Time between updates:", nextUpdateTime - lastUpdateTime);
-      console.log("Expected growth:", data.users_growth_rate_per_second);
+      console.log(
+        "Expected growth:",
+        data.users_growth_rate_per_second,
+        "per second",
+      );
 
       const now = Date.now();
       const timeUntilNextUpdate = nextUpdateTime - now;
@@ -70,8 +74,9 @@ export default function Home() {
         ...prev,
         userCount: newUserCount,
         barMax: roundToNextMilestone(newUserCount),
-        lastUpdateResponse: nextUpdateTime - secsUntilNextUpdate * 1000,
-        nextUpdateTime: nextUpdateTime,
+        // TODO: calculate this from the API
+        lastUpdateResponse: nextUpdateTime - 60 * 1000,
+        nextUpdateTime: nextUpdateTime + UPDATE_TIME_OFFSET,
         growthRate: data.users_growth_rate_per_second,
         isError: false,
         isLoading: false,
@@ -128,7 +133,7 @@ export default function Home() {
         150,
       );
 
-      console.log(progress);
+      //console.log(progress);
 
       // Calculate estimated growth since last update
       const estimatedGrowth = (stats.growthRate * progress) / 100;
@@ -209,7 +214,8 @@ export default function Home() {
                 value={
                   userCount == 0
                     ? 0
-                    : ((userCount + growthRate * progressUntilNextUpdate) /
+                    : ((userCount +
+                        growthRate * ((progressUntilNextUpdate / 100) * 60)) /
                         barMax) *
                       100
                 }
@@ -252,7 +258,7 @@ export default function Home() {
                     className="inline-flex"
                     decimalPrecision={1}
                     padNumber={5}
-                    value={growthRate * progressUntilNextUpdate}
+                    value={growthRate * ((progressUntilNextUpdate / 100) * 60)}
                     showColorsWhenValueChanges={false}
                   />{" "}
                   users since last update
