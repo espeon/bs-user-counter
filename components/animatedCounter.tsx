@@ -5,7 +5,7 @@ import React, {
   useRef,
   useState,
   CSSProperties,
-} from 'react';
+} from "react";
 
 export interface AnimatedCounterProps {
   value?: number;
@@ -37,8 +37,8 @@ export interface DecimalColumnProps {
 
 // Decimal element component
 const DecimalColumn = ({ isComma, digitStyles }: DecimalColumnProps) => (
-  <span className={`${isComma ? 'ml-[-0.1rem]' : ''}`} style={digitStyles}>
-    {isComma ? ',' : '.'}
+  <span className={`${isComma ? "ml-[-0.1rem]" : ""}`} style={digitStyles}>
+    {isComma ? "," : "."}
   </span>
 );
 
@@ -55,7 +55,7 @@ const NumberColumn = memo(
     const [position, setPosition] = useState<number>(0);
     const [animationClass, setAnimationClass] = useState<string | null>(null);
     const [movementType, setMovementType] = useState<
-      'increment' | 'decrement' | null
+      "increment" | "decrement" | null
     >(null);
     const currentDigit = +digit;
     const previousDigit = usePrevious(+currentDigit);
@@ -65,20 +65,20 @@ const NumberColumn = memo(
       (number: string) => {
         if (columnContainer.current) {
           setPosition(
-            columnContainer.current.clientHeight * parseInt(number, 10)
+            columnContainer.current.clientHeight * parseInt(number, 10),
           );
         }
       },
-      [columnContainer.current?.clientHeight]
+      [columnContainer.current?.clientHeight],
     );
 
     useEffect(() => {
-      setAnimationClass(previousDigit !== currentDigit ? delta : '');
+      setAnimationClass(previousDigit !== currentDigit ? delta : "");
       if (!showColorsWhenValueChanges) return;
-      if (delta === 'animate-moveUp') {
-        setMovementType('increment');
-      } else if (delta === 'animate-moveDown') {
-        setMovementType('decrement');
+      if (delta === "animate-moveUp") {
+        setMovementType("increment");
+      } else if (delta === "animate-moveDown") {
+        setMovementType("decrement");
       }
     }, [digit, delta, previousDigit, currentDigit]);
 
@@ -93,7 +93,7 @@ const NumberColumn = memo(
       setColumnToNumber(digit);
     }, [digit, setColumnToNumber]);
 
-    if (digit === '-') {
+    if (digit === "-") {
       return <span>{digit}</span>;
     }
 
@@ -105,19 +105,19 @@ const NumberColumn = memo(
           {
             maskImage: `linear-gradient(to top, transparent 0%, black min(0.5rem, 20%)),
         linear-gradient(to bottom, transparent 0%, black min(0.5rem, 20%))`,
-            maskComposite: 'intersect',
+            maskComposite: "intersect",
           } as CSSProperties
         }
       >
         <div
           className={`absolute w-full flex flex-col ${animationClass} ${
-            animationClass ? 'animate-move' : ''
-          } transition-all duration-300 ease-in-out`}
+            animationClass ? "animate-move" : ""
+          } transition-all duration-150 ease-in-out`}
           style={
             {
               transform: `translateY(-${position}px)`,
-              '--increment-color': incrementColor,
-              '--decrement-color': decrementColor,
+              "--increment-color": incrementColor,
+              "--decrement-color": decrementColor,
               color: `var(--${movementType}-color)`,
             } as CSSProperties
           }
@@ -133,21 +133,21 @@ const NumberColumn = memo(
     );
   },
   (prevProps, nextProps) =>
-    prevProps.digit === nextProps.digit && prevProps.delta === nextProps.delta
+    prevProps.digit === nextProps.digit && prevProps.delta === nextProps.delta,
 );
 
 // Main component
 const AnimatedCounter = ({
   value = 0,
-  incrementColor = '#32cd32',
-  decrementColor = '#fe6862',
+  incrementColor = "#32cd32",
+  decrementColor = "#fe6862",
   includeDecimals = true,
   decimalPrecision = 2,
   includeCommas = false,
   containerStyles = {},
   digitStyles = {},
   padNumber = 0,
-  className = '',
+  className = "",
   showColorsWhenValueChanges = true,
 }: AnimatedCounterProps) => {
   const numArray = formatForDisplay(
@@ -155,7 +155,7 @@ const AnimatedCounter = ({
     includeDecimals,
     decimalPrecision,
     includeCommas,
-    padNumber
+    padNumber,
   );
   const previousNumber = usePrevious(value);
   const isNegative = value < 0;
@@ -164,9 +164,9 @@ const AnimatedCounter = ({
 
   if (previousNumber !== null) {
     if (value > previousNumber) {
-      delta = 'animate-moveUp'; // Tailwind class for increase
+      delta = "animate-moveUp"; // Tailwind class for increase
     } else if (value < previousNumber) {
-      delta = 'animate-moveDown'; // Tailwind class for decrease
+      delta = "animate-moveDown"; // Tailwind class for decrease
     }
   }
 
@@ -178,8 +178,8 @@ const AnimatedCounter = ({
       {/* If number is negative, render '-' feedback */}
       {isNegative && (
         <NumberColumn
-          key={'negative-feedback'}
-          digit={'-'}
+          key={"negative-feedback"}
+          digit={"-"}
           delta={delta}
           incrementColor={incrementColor}
           decrementColor={decrementColor}
@@ -189,10 +189,10 @@ const AnimatedCounter = ({
       )}
       {/* Format integer to NumberColumn components */}
       {numArray.map((number: string, index: number) =>
-        number === '.' || number === ',' ? (
+        number === "." || number === "," ? (
           <DecimalColumn
             key={index}
-            isComma={number === ','}
+            isComma={number === ","}
             digitStyles={digitStyles}
           />
         ) : (
@@ -205,7 +205,7 @@ const AnimatedCounter = ({
             digitStyles={digitStyles}
             showColorsWhenValueChanges={showColorsWhenValueChanges}
           />
-        )
+        ),
       )}
     </div>
   );
@@ -216,18 +216,18 @@ const formatForDisplay = (
   includeDecimals: boolean,
   decimalPrecision: number,
   includeCommas: boolean,
-  padTo: number = 0
+  padTo: number = 0,
 ): string[] => {
   const decimalCount = includeDecimals ? decimalPrecision : 0;
   const parsedNumber = parseFloat(`${Math.max(number, 0)}`).toFixed(
-    decimalCount
+    decimalCount,
   );
   const numberToFormat = includeCommas
-    ? parseFloat(parsedNumber).toLocaleString('en-US', {
+    ? parseFloat(parsedNumber).toLocaleString("en-US", {
         minimumFractionDigits: includeDecimals ? decimalPrecision : 0,
       })
     : parsedNumber;
-  return numberToFormat.padStart(padTo, '0').split('');
+  return numberToFormat.padStart(padTo, "0").split("");
 };
 
 // Hook used to track previous value of primary number state in AnimatedCounter & individual digits in NumberColumn

@@ -1,132 +1,162 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { CircleAlert, Clock, MessageCircleWarning, TrendingUp, TriangleAlert } from "lucide-react";
+import { Clock, TrendingUp, TriangleAlert } from "lucide-react";
 import AnimatedCounter from "@/components/animatedCounter";
 import Link from "next/link";
 import { ThemeSwitcher } from "@/components/themeSwitcher";
+
+const UPDATE_INTERVAL = 60000;
+const UPDATE_TIME = 60000;
+const RETRY_DELAY = 5000;
+
+// Add a random offset to the update time to avoid all users updating at the same time
+const UPDATE_TIME_OFFSET = Math.floor(Math.random() * 10);
 
 function roundToNextMilestone(num: number) {
   const magnitude = Math.pow(10, Math.floor(Math.log10(num)));
   return Math.ceil(num / magnitude) * magnitude;
 }
 
-export default function Home() {
-  const [userCount, setUserCount] = useState(0);
-  const [lastUpdateResponse, setLastUpdateResponse] = useState(0);
-  const [interpolatedCount, setInterpolatedCount] = useState(0);
-  const [barMax, setBarMax] = useState(100);
-  const [progressUntilNextUpdate, setProgressUntilNextUpdate] = useState(0);
-  const [nextUpdateTime, setNextUpdateTime] = useState(Date.now());
-  const [growthRate, setGrowthRate] = useState(0); // Default to 4.5 users per second
+interface StatsState {
+  userCount: number;
+  lastUpdateResponse: number;
+  interpolatedCount: number;
+  barMax: number;
+  progressUntilNextUpdate: number;
+  nextUpdateTime: number;
+  growthRate: number;
+  isError: boolean;
+  isLoading: boolean;
+}
 
-  // We get updates every 20 seconds
-  const UPDATE_INTERVAL = 60000;
-  // API updates every 60 seconds
-  const UPDATE_TIME = 60000;
-  
-  const fetchData = async () => {
+export default function Home() {
+  const [stats, setStats] = useState<StatsState>({
+    userCount: 0,
+    lastUpdateResponse: 0,
+    interpolatedCount: 0,
+    barMax: 100,
+    progressUntilNextUpdate: 0,
+    nextUpdateTime: Date.now(),
+    growthRate: 0,
+    isError: false,
+    isLoading: true,
+  });
+
+  const fetchData = useCallback(async () => {
     try {
       const response = await fetch("https://bsky-stats.lut.li/");
+      if (!response.ok) throw new Error("API request failed");
+
       const data = await response.json();
-      console.log(data);
-
       const newUserCount = data.total_users;
-      let nextUpdate = Date.parse(data.last_update_time) + UPDATE_TIME;
+      const lastUpdateTime = Date.parse(data.last_update_time);
+      const nextUpdateTime = Date.parse(data.next_update_time);
 
-      // Update the user count, bar max, and last update time
-      if(data.users_growth_rate_per_second != null) {
-      setGrowthRate((data.users_growth_rate_per_second ?? 3.45) * UPDATE_TIME/1000)
-      }
-      if (userCount !== newUserCount) {
-        setUserCount(newUserCount);
-        setBarMax(roundToNextMilestone(newUserCount));
-        // set the last response
-        setLastUpdateResponse(Date.parse(data.last_update_time));
-        console.log('setting next update time', nextUpdate);
-        setNextUpdateTime(nextUpdate);
-      }
+      console.log("Time between updates:", nextUpdateTime - lastUpdateTime);
+      console.log("Expected growth:", data.users_growth_rate_per_second);
 
-      // Align our requests with the API's update time, provide an offset to the next update time
-      const offset = -Math.floor((Date.now() - nextUpdate) / 1000);
-      console.log("Our offset is", offset);
-      return offset;
+      const now = Date.now();
+      const timeUntilNextUpdate = nextUpdateTime - now;
+
+      let secsUntilNextUpdate = Math.max(
+        1,
+        Math.floor(timeUntilNextUpdate / 1000) + UPDATE_TIME_OFFSET,
+      );
+
+      setStats((prev) => ({
+        ...prev,
+        userCount: newUserCount,
+        barMax: roundToNextMilestone(newUserCount),
+        lastUpdateResponse: nextUpdateTime - secsUntilNextUpdate * 1000,
+        nextUpdateTime: nextUpdateTime,
+        growthRate: data.users_growth_rate_per_second,
+        isError: false,
+        isLoading: false,
+      }));
+
+      return secsUntilNextUpdate;
     } catch (error) {
       console.error("Error fetching user count:", error);
-      return 0; // In case of error, use 0 offset to avoid delays
+      setStats((prev) => ({ ...prev, isError: true, isLoading: false }));
+      return null;
     }
-  };
-
+  }, []);
 
   useEffect(() => {
-    let intervalId: NodeJS.Timeout;
     let timeoutId: NodeJS.Timeout;
+
     const initiateFetching = async () => {
-      try {
-        const offset = await fetchData();
-        console.log("Offset before next fetch:", offset);
-    
-        // Clear any existing timeouts to avoid overlap
-        if (timeoutId) {
-          clearTimeout(timeoutId);
-        }
-    
-        // Delay next fetch based on the offset
-        timeoutId = setTimeout(() => {
-          initiateFetching();
-        }, (offset ?? 0) * 1000 + 30);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        // Optionally, retry after a fixed timeout on error
-        timeoutId = setTimeout(() => {
-          initiateFetching();
-        }, 5000); // Retry in 5 seconds if fetch fails
+      const secondsUntilNextUpdate = await fetchData();
+
+      if (secondsUntilNextUpdate === null) {
+        console.log("Retrying in", RETRY_DELAY, "ms");
+        timeoutId = setTimeout(initiateFetching, RETRY_DELAY);
+      } else {
+        console.log(
+          "Scheduling next update in",
+          secondsUntilNextUpdate,
+          "seconds at",
+          new Date(Date.now() + secondsUntilNextUpdate * 1000),
+        );
+        console.log("User fetch offset is", UPDATE_TIME_OFFSET, "seconds");
+
+        timeoutId = setTimeout(initiateFetching, secondsUntilNextUpdate * 1000);
       }
     };
-  
-    // Start the fetching process
+
     initiateFetching();
-  
-    // Cleanup: clear the timeout and interval on component unmount or update
-    return () => {
-      clearTimeout(timeoutId);
-      clearInterval(intervalId);
-    };
-  }, [userCount]);
+    return () => clearTimeout(timeoutId);
+  }, [fetchData]);
 
+  // Update interpolation effect
   useEffect(() => {
     const timer = setInterval(() => {
-      const elapsedTime = Date.now() - nextUpdateTime;
+      if (stats.userCount === 0) return;
 
-      // Estimate current user count based on growth rate
-      const estimatedGrowth = (growthRate * elapsedTime) / 1000;
-      setInterpolatedCount(Math.round(userCount + estimatedGrowth));
+      const now = Date.now();
+      const timeSinceLastUpdate = now - stats.lastUpdateResponse;
+      const totalUpdateInterval =
+        stats.nextUpdateTime - stats.lastUpdateResponse;
+
+      // Calculate progress (0-100)
+      // Overflows past 100 in case of API instability
+      const progress = Math.min(
+        (timeSinceLastUpdate / totalUpdateInterval) * 100,
+        150,
+      );
+
+      console.log(progress);
+
+      // Calculate estimated growth since last update
+      const estimatedGrowth = (stats.growthRate * progress) / 100;
+
+      setStats((prev) => ({
+        ...prev,
+        progressUntilNextUpdate: progress,
+        interpolatedCount: Math.round(prev.userCount + estimatedGrowth),
+      }));
     }, 100);
 
     return () => clearInterval(timer);
-  }, [nextUpdateTime, userCount, growthRate]);
+  }, [
+    stats.userCount,
+    stats.growthRate,
+    stats.lastUpdateResponse,
+    stats.nextUpdateTime,
+  ]);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      if (userCount == 0) {
-        return;
-      }
-      // time left until next update
-      const elapsedTime = nextUpdateTime - Date.now();
-      //console.log(elapsedTime)
-      const progress = 100 - Math.min(elapsedTime / UPDATE_TIME, 1) * 100;
-      // if elapsed time is negative force an update
-      setProgressUntilNextUpdate(progress);
-
-      // Estimate current user count based on growth rate
-      const estimatedGrowth = (growthRate * elapsedTime) / 1000;
-      setInterpolatedCount(Math.round(userCount + estimatedGrowth));
-    }, 100);
-
-    return () => clearInterval(timer);
-  }, [nextUpdateTime, userCount, growthRate]);
+  const {
+    userCount,
+    barMax,
+    progressUntilNextUpdate,
+    growthRate,
+    interpolatedCount,
+    isError,
+    isLoading,
+  } = stats;
 
   return (
     <div className="container mx-auto w-screen max-w-screen h-screen">
@@ -138,13 +168,15 @@ export default function Home() {
                 <ThemeSwitcher />
               </div>
               <div>
-              <div className="px-2 py-1 rounded-full bg-yellow-500 text-black flex flex-row items-center justify-center">
-                  <TriangleAlert className="w-4 h-4 mr-2" /> There is a backend issue. The numbers displayed may be inaccurate.
-                </div>
+                {/* <div className="px-2 py-1 rounded-full bg-yellow-500 text-black flex flex-row items-center justify-center">
+                  <TriangleAlert className="w-4 h-4 mr-2" /> There is a backend
+                  issue. The numbers displayed may be inaccurate.
+                </div> */}
                 <div className="text-5xl md:text-6xl lg:text-8xl font-semibold text-blue-500">
                   <AnimatedCounter
                     value={Math.floor(
-                      userCount + growthRate * (progressUntilNextUpdate / 100)
+                      userCount +
+                        growthRate * 55 * (progressUntilNextUpdate / 100),
                     )}
                     includeCommas={true}
                     includeDecimals={false}
@@ -152,6 +184,7 @@ export default function Home() {
                     showColorsWhenValueChanges={false}
                   />
                 </div>
+                {/* {userCount} {growthRate} {progressUntilNextUpdate} */}
                 <div className="text-lg text-muted-foreground mt-2 mb-1">
                   users on Bluesky
                 </div>
@@ -162,24 +195,26 @@ export default function Home() {
                 userCount == 0
                   ? 0
                   : Math.floor(
-                      ((interpolatedCount +
-                        growthRate * (progressUntilNextUpdate / 100)) /
+                      ((userCount + growthRate * progressUntilNextUpdate) /
                         barMax) *
-                        100
+                        100,
                     )
               }
               className="h-2"
             />
             <div className="text-xs text-muted-foreground mt-2">
-            <AnimatedCounter
-                    className="inline-flex"
-                    decimalPrecision={5}
-                    value={userCount == 0
-                      ? 0
-                      : (userCount + growthRate * (progressUntilNextUpdate / 100)) / barMax * 100
-                        }
-                    showColorsWhenValueChanges={false}
-                  />
+              <AnimatedCounter
+                className="inline-flex"
+                decimalPrecision={5}
+                value={
+                  userCount == 0
+                    ? 0
+                    : ((userCount + growthRate * progressUntilNextUpdate) /
+                        barMax) *
+                      100
+                }
+                showColorsWhenValueChanges={false}
+              />
               % of {Intl.NumberFormat().format(barMax)} users
             </div>
           </div>
@@ -196,14 +231,16 @@ export default function Home() {
                   {Math.ceil(
                     (UPDATE_TIME -
                       (progressUntilNextUpdate / 100) * UPDATE_TIME) /
-                      1000
-                  ) < 0 ? <div className="loader" /> :
-                  Math.ceil(
-                    (UPDATE_TIME -
-                      (progressUntilNextUpdate / 100) * UPDATE_TIME) /
-                      1000
-                  )
-                  + "s"}
+                      1000,
+                  ) <= 0 ? (
+                    <div className="loader" />
+                  ) : (
+                    Math.ceil(
+                      (UPDATE_TIME -
+                        (progressUntilNextUpdate / 100) * UPDATE_TIME) /
+                        1000,
+                    ) + "s"
+                  )}
                 </div>
                 <Progress
                   value={progressUntilNextUpdate}
@@ -215,7 +252,7 @@ export default function Home() {
                     className="inline-flex"
                     decimalPrecision={1}
                     padNumber={5}
-                    value={growthRate * (progressUntilNextUpdate / 100)}
+                    value={growthRate * progressUntilNextUpdate}
                     showColorsWhenValueChanges={false}
                   />{" "}
                   users since last update
@@ -231,10 +268,7 @@ export default function Home() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  <AnimatedCounter
-                    className="inline-flex"
-                    value={growthRate/UPDATE_TIME * 1000}
-                  />
+                  <AnimatedCounter className="inline-flex" value={growthRate} />
                 </div>
                 <div className="text-xs text-muted-foreground mt-2">
                   Users per second{" "}
