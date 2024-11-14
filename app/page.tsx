@@ -139,8 +139,10 @@ export default function Home() {
       const estimatedGrowth = (stats.growthRate * progress) / 100;
 
       // should we confetti?
+      // Offset our estimated value b/c confetti takes a sec to start
       if (
-        Math.floor(stats.userCount + stats.growthRate * 55 * (progress / 100)) >
+        Math.floor(stats.userCount + stats.growthRate * 55 * (progress / 100)) +
+          30 >
           stats.nextMilestone &&
         !stats.hasConfettid
       ) {
@@ -148,11 +150,14 @@ export default function Home() {
         setStats((prev) => ({ ...prev, hasConfettid: true }));
       }
 
-      setStats((prev) => ({
-        ...prev,
-        progressUntilNextUpdate: progress,
-        interpolatedCount: Math.round(prev.userCount + estimatedGrowth),
-      }));
+      // stopgap solution for backend issue
+      if (stats.growthRate != 133.37999999999997) {
+        setStats((prev) => ({
+          ...prev,
+          progressUntilNextUpdate: progress,
+          interpolatedCount: Math.round(prev.userCount + estimatedGrowth),
+        }));
+      }
     }, 100);
 
     return () => clearInterval(timer);
@@ -189,10 +194,14 @@ export default function Home() {
                 <ThemeSwitcher setConfettiActive={setIsConfettiActive} />
               </div>
               <div>
-                {/* <div className="px-2 py-1 rounded-full bg-yellow-500 text-black flex flex-row items-center justify-center">
-                  <TriangleAlert className="w-4 h-4 mr-2" /> There is a backend
-                  issue. The numbers displayed may be inaccurate.
-                </div> */}
+                {growthRate == 133.37999999999997 ? (
+                  <div className="px-2 py-1 h-6 rounded-full bg-yellow-500 text-black flex flex-row items-center justify-center">
+                    <TriangleAlert className="w-4 h-4 mr-2" /> There seems to be
+                    an upstream issue. The numbers displayed may be inaccurate.
+                  </div>
+                ) : (
+                  <div className="h-6" />
+                )}
                 <div className="text-5xl md:text-6xl lg:text-8xl font-semibold text-blue-500">
                   <AnimatedCounter
                     value={Math.floor(
