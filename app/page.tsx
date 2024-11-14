@@ -7,6 +7,7 @@ import { Clock, TrendingUp, TriangleAlert } from "lucide-react";
 import AnimatedCounter from "@/components/animatedCounter";
 import Link from "next/link";
 import { ThemeSwitcher } from "@/components/themeSwitcher";
+import ParticlesComponent from "@/components/particles";
 
 const UPDATE_INTERVAL = 60000;
 const UPDATE_TIME = 60000;
@@ -15,16 +16,19 @@ const RETRY_DELAY = 5000;
 // Add a random offset to the update time to avoid all users updating at the same time
 const UPDATE_TIME_OFFSET = Math.floor(Math.random() * 10);
 
-function roundToNextMilestone(num: number) {
+function roundToNextMilestone(num: number, offset: number = 1.0) {
+  // Add a small offset
   const magnitude = Math.pow(10, Math.floor(Math.log10(num)));
-  return Math.ceil(num / magnitude) * magnitude;
+  return Math.ceil(num / (offset * magnitude)) * (offset * magnitude);
 }
 
 interface StatsState {
+  hasConfettid: boolean;
   userCount: number;
   lastUpdateResponse: number;
   interpolatedCount: number;
   barMax: number;
+  nextMilestone: number;
   progressUntilNextUpdate: number;
   nextUpdateTime: number;
   growthRate: number;
@@ -33,11 +37,14 @@ interface StatsState {
 }
 
 export default function Home() {
+  const [isConfettiActive, setIsConfettiActive] = useState(false);
   const [stats, setStats] = useState<StatsState>({
+    hasConfettid: false,
     userCount: 0,
     lastUpdateResponse: 0,
     interpolatedCount: 0,
     barMax: 100,
+    nextMilestone: 1000,
     progressUntilNextUpdate: 0,
     nextUpdateTime: Date.now(),
     growthRate: 0,
@@ -65,8 +72,10 @@ export default function Home() {
 
       setStats((prev) => ({
         ...prev,
+        hasConfettid: false,
         userCount: newUserCount,
         barMax: roundToNextMilestone(newUserCount),
+        nextMilestone: roundToNextMilestone(newUserCount, 0.1),
         // TODO: calculate this from the API
         lastUpdateResponse: nextUpdateTime - (60 - UPDATE_TIME_OFFSET) * 1000,
         nextUpdateTime: nextUpdateTime + UPDATE_TIME_OFFSET * 1000,
@@ -126,10 +135,18 @@ export default function Home() {
         150,
       );
 
-      //console.log(progress);
-
       // Calculate estimated growth since last update
       const estimatedGrowth = (stats.growthRate * progress) / 100;
+
+      // should we confetti?
+      if (
+        Math.floor(stats.userCount + stats.growthRate * 55 * (progress / 100)) >
+          stats.nextMilestone &&
+        !stats.hasConfettid
+      ) {
+        setIsConfettiActive(true);
+        setStats((prev) => ({ ...prev, hasConfettid: true }));
+      }
 
       setStats((prev) => ({
         ...prev,
@@ -140,10 +157,12 @@ export default function Home() {
 
     return () => clearInterval(timer);
   }, [
+    stats.hasConfettid,
     stats.userCount,
     stats.growthRate,
     stats.lastUpdateResponse,
     stats.nextUpdateTime,
+    stats.nextMilestone,
   ]);
 
   const {
@@ -158,12 +177,16 @@ export default function Home() {
 
   return (
     <div className="container mx-auto w-screen max-w-screen h-screen">
+      <ParticlesComponent
+        isAnimating={isConfettiActive}
+        setIsAnimating={setIsConfettiActive}
+      />
       <div className="md:grid place-items-center h-full w-full  pt-4 md:pt-0">
         <div>
           <div className="min-w-[8rem] max-w-screen-md pb-4">
             <div className="flex flex-col md:flex-row-reverse items-left justify-between">
               <div className="flex flex-row items-start justify-between pb-16 md:pb-0">
-                <ThemeSwitcher />
+                <ThemeSwitcher setConfettiActive={setIsConfettiActive} />
               </div>
               <div>
                 {/* <div className="px-2 py-1 rounded-full bg-yellow-500 text-black flex flex-row items-center justify-center">
@@ -200,6 +223,7 @@ export default function Home() {
               }
               className="h-2"
             />
+            {/* next milestone at {Math.floor(stats.nextMilestone)} */}
             <div className="text-xs text-muted-foreground mt-2">
               <AnimatedCounter
                 className="inline-flex"

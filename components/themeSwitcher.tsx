@@ -14,7 +14,11 @@ function matchThemeToIcon(theme: string | undefined) {
   }
 }
 
-export function ThemeSwitcher() {
+export function ThemeSwitcher({
+  setConfettiActive,
+}: {
+  setConfettiActive: (value: boolean) => void;
+}) {
   const [mounted, setMounted] = useState(false);
   const { setTheme, resolvedTheme } = useTheme();
 
@@ -37,6 +41,7 @@ export function ThemeSwitcher() {
       size="icon"
       className="rounded-full"
       onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+      onDoubleClick={() => setConfettiActive(true)}
     >
       <ButtonType className="h-4 w-4" />
     </Button>
