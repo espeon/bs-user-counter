@@ -55,13 +55,6 @@ export default function Home() {
       const lastUpdateTime = Date.parse(data.last_update_time);
       const nextUpdateTime = Date.parse(data.next_update_time);
 
-      console.log("Time between updates:", nextUpdateTime - lastUpdateTime);
-      console.log(
-        "Expected growth:",
-        data.users_growth_rate_per_second,
-        "per second",
-      );
-
       const now = Date.now();
       const timeUntilNextUpdate = nextUpdateTime - now;
 
@@ -75,8 +68,8 @@ export default function Home() {
         userCount: newUserCount,
         barMax: roundToNextMilestone(newUserCount),
         // TODO: calculate this from the API
-        lastUpdateResponse: nextUpdateTime - 60 * 1000,
-        nextUpdateTime: nextUpdateTime + UPDATE_TIME_OFFSET,
+        lastUpdateResponse: nextUpdateTime - (60 - UPDATE_TIME_OFFSET) * 1000,
+        nextUpdateTime: nextUpdateTime + UPDATE_TIME_OFFSET * 1000,
         growthRate: data.users_growth_rate_per_second,
         isError: false,
         isLoading: false,
