@@ -247,7 +247,7 @@ export default function Home() {
                 }
                 showColorsWhenValueChanges={false}
               />
-              % of {Intl.NumberFormat().format(barMax)} users
+              % of {Intl.NumberFormat().format(barMax)} user goal
             </div>
           </div>
           <div className="grid gap-4 md:grid-cols-2 max-w-screen-md md:w-screen">
