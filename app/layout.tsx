@@ -23,12 +23,12 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <Head>
       <Script defer src="https://watson.nat.vg/script.js" data-website-id="c886b50e-c028-4838-990c-8a2451e73201"></Script>
-        <script defer src="https://watson.nat.vg/script.js" data-website-id="c886b50e-c028-4838-990c-8a2451e73201"></script>
         </Head>
       <body className={inter.className + "," + mono.className}>
         <ThemeProvider defaultTheme="system" attribute="class">
           {children}
         </ThemeProvider>
+        <script defer src="https://watson.nat.vg/script.js" data-website-id="c886b50e-c028-4838-990c-8a2451e73201"></script>
       </body>
     </html>
   );
