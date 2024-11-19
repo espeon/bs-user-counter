@@ -70,19 +70,41 @@ export default function Home() {
         Math.floor(timeUntilNextUpdate / 1000) + UPDATE_TIME_OFFSET,
       );
 
-      setStats((prev) => ({
-        ...prev,
-        hasConfettid: false,
-        userCount: newUserCount,
-        barMax: roundToNextMilestone(newUserCount),
-        nextMilestone: roundToNextMilestone(newUserCount, 0.1),
-        // TODO: calculate this from the API
-        lastUpdateResponse: nextUpdateTime - (60 - UPDATE_TIME_OFFSET) * 1000,
-        nextUpdateTime: nextUpdateTime + UPDATE_TIME_OFFSET * 1000,
-        growthRate: data.users_growth_rate_per_second,
-        isError: false,
-        isLoading: false,
-      }));
+      // last milestones
+      const lastMilestone = stats.nextMilestone;
+      //const lastUserCount = stats.userCount;
+
+      // if we've crossed the last milestone, don't change user count
+      // if we update past the milestone, we won't have confetti!
+      // just update response times and growth rate
+      if (newUserCount > lastMilestone) {
+        setStats((prev) => ({
+          ...prev,
+          barMax: roundToNextMilestone(newUserCount),
+          nextMilestone: roundToNextMilestone(newUserCount, 0.1),
+          // TODO: calculate this from the API
+          lastUpdateResponse: nextUpdateTime - (60 - UPDATE_TIME_OFFSET) * 1000,
+          nextUpdateTime: nextUpdateTime + UPDATE_TIME_OFFSET * 1000,
+          growthRate: data.users_growth_rate_per_second,
+          isError: false,
+          isLoading: false,
+        }));
+      } else {
+        // if we're not crossing the last milestone, update everything
+        setStats((prev) => ({
+          ...prev,
+          hasConfettid: false,
+          userCount: newUserCount,
+          barMax: roundToNextMilestone(newUserCount),
+          nextMilestone: roundToNextMilestone(newUserCount, 0.1),
+          // TODO: calculate this from the API
+          lastUpdateResponse: nextUpdateTime - (60 - UPDATE_TIME_OFFSET) * 1000,
+          nextUpdateTime: nextUpdateTime + UPDATE_TIME_OFFSET * 1000,
+          growthRate: data.users_growth_rate_per_second,
+          isError: false,
+          isLoading: false,
+        }));
+      }
 
       return secsUntilNextUpdate;
     } catch (error) {
