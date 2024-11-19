@@ -74,10 +74,11 @@ export default function Home() {
       const lastMilestone = stats.nextMilestone;
       //const lastUserCount = stats.userCount;
 
+      // if we are loading, change user count!!!
       // if we've crossed the last milestone, don't change user count
       // if we update past the milestone, we won't have confetti!
       // just update response times and growth rate
-      if (newUserCount > lastMilestone) {
+      if (newUserCount > lastMilestone && !isLoading && !isError) {
         setStats((prev) => ({
           ...prev,
           barMax: roundToNextMilestone(newUserCount),
