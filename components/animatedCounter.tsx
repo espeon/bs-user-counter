@@ -44,14 +44,14 @@ const DecimalColumn = ({ isComma, digitStyles }: DecimalColumnProps) => (
 
 // Individual number element component
 const NumberColumn = memo(
-  ({
+  function NumberColumn({
     digit,
     delta,
     incrementColor,
     decrementColor,
     digitStyles,
     showColorsWhenValueChanges,
-  }: NumberColumnProps) => {
+  }: NumberColumnProps) {
     const [position, setPosition] = useState<number>(0);
     const [animationClass, setAnimationClass] = useState<string | null>(null);
     const [movementType, setMovementType] = useState<
@@ -61,16 +61,13 @@ const NumberColumn = memo(
     const previousDigit = usePrevious(+currentDigit);
     const columnContainer = useRef<HTMLDivElement>(null);
 
-    const setColumnToNumber = useCallback(
-      (number: string) => {
-        if (columnContainer.current) {
-          setPosition(
-            columnContainer.current.clientHeight * parseInt(number, 10),
-          );
-        }
-      },
-      [columnContainer.current?.clientHeight],
-    );
+    const setColumnToNumber = useCallback((number: string) => {
+      if (columnContainer.current) {
+        setPosition(
+          columnContainer.current.clientHeight * parseInt(number, 10),
+        );
+      }
+    }, []);
 
     useEffect(() => {
       setAnimationClass(previousDigit !== currentDigit ? delta : "");
@@ -80,7 +77,7 @@ const NumberColumn = memo(
       } else if (delta === "animate-moveDown") {
         setMovementType("decrement");
       }
-    }, [digit, delta, previousDigit, currentDigit]);
+    }, [digit, delta, previousDigit, currentDigit, showColorsWhenValueChanges]);
 
     // reset movementType after 300ms
     useEffect(() => {

@@ -35,13 +35,23 @@ export function ThemeSwitcher({
 
   let ButtonType = matchThemeToIcon(resolvedTheme);
 
+  let handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    // if shift is pressed, just set confetti active
+    console.log(event.shiftKey);
+    if (event.shiftKey) {
+      setConfettiActive(true);
+      return;
+    } else {
+      setTheme(resolvedTheme === "dark" ? "light" : "dark");
+    }
+  };
+
   return (
     <Button
       variant="outline"
       size="icon"
       className="rounded-full"
-      onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-      onDoubleClick={() => setConfettiActive(true)}
+      onClick={handleClick}
     >
       <ButtonType className="h-4 w-4" />
     </Button>
