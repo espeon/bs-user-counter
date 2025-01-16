@@ -76,7 +76,7 @@ export default function Component({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isAnimating, setIsAnimating]);
+  }, [isAnimating, isBlocked, setIsAnimating, startConfetti]);
 
   // cover the whole page
   return (
