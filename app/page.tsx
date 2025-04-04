@@ -22,7 +22,7 @@ export default function Home() {
     isLoading,
   } = stats;
 
-  let nextMilestoneTimeLeft = ((barMax - userCount) / growthRate);
+  let nextMilestoneTimeLeft = growthRate != 0 ? ((barMax - userCount) / growthRate) : 0;
   let nextMilestoneTimeLeftUnit = "";
   if (nextMilestoneTimeLeft > 60 * 60 * 24) {
     nextMilestoneTimeLeft /= 60 * 60 * 24;
