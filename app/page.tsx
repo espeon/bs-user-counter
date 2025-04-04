@@ -89,7 +89,13 @@ export default function Home() {
                 }
                 showColorsWhenValueChanges={false}
               />
-              % of {Intl.NumberFormat().format(barMax)} user goal
+              % of {Intl.NumberFormat().format(barMax)} user goal (reached in{" "}
+                <AnimatedCounter
+                    className="inline-flex"
+                    decimalPrecision={1}
+                    value={ ((barMax - userCount) / growthRate) / (60 * 60 * 24) }
+                  />
+               {" "}days)
             </div>
           </div>
           <div className="grid gap-4 md:grid-cols-2 max-w-screen-md md:w-screen">
