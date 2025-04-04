@@ -22,6 +22,24 @@ export default function Home() {
     isLoading,
   } = stats;
 
+  let nextMilestoneTimeLeft = growthRate != 0 ? ((barMax - userCount) / growthRate) : 0;
+  let nextMilestoneTimeLeftUnit = "";
+  if (nextMilestoneTimeLeft > 60 * 60 * 24) {
+    nextMilestoneTimeLeft /= 60 * 60 * 24;
+    nextMilestoneTimeLeftUnit = "days";
+  }
+  else if (nextMilestoneTimeLeft > 60 * 60) {
+    nextMilestoneTimeLeft /= 60 * 60;
+    nextMilestoneTimeLeftUnit = "hours";
+  }
+  else if (nextMilestoneTimeLeft > 60) {
+    nextMilestoneTimeLeft /= 60;
+    nextMilestoneTimeLeftUnit = "minutes";
+  }
+  else {
+    nextMilestoneTimeLeftUnit = "seconds";
+  }
+
   return (
     <div className="container mx-auto w-screen max-w-screen h-screen">
       <ParticlesComponent
@@ -89,7 +107,13 @@ export default function Home() {
                 }
                 showColorsWhenValueChanges={false}
               />
-              % of {Intl.NumberFormat().format(barMax)} user goal
+              % of {Intl.NumberFormat().format(barMax)} user goal (reached in ~
+                <AnimatedCounter
+                    className="inline-flex"
+                    decimalPrecision={1}
+                    value={nextMilestoneTimeLeft}
+                  />
+               {" "}{nextMilestoneTimeLeftUnit})
             </div>
           </div>
           <div className="grid gap-4 md:grid-cols-2 max-w-screen-md md:w-screen">
