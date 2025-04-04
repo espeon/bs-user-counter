@@ -89,7 +89,7 @@ export default function Home() {
                 }
                 showColorsWhenValueChanges={false}
               />
-              % of {Intl.NumberFormat().format(barMax)} user goal (reached in{" "}
+              % of {Intl.NumberFormat().format(barMax)} user goal (reached in ~
                 <AnimatedCounter
                     className="inline-flex"
                     decimalPrecision={1}
