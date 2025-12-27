@@ -54,7 +54,7 @@ export default function Home() {
                 <ThemeSwitcher setConfettiActive={setIsConfettiActive} />
               </div>
               <div>
-                {growthRate == 133.37999999999997 ? (
+                {growthRate == 133.37999999999997 || growthRate == 0 ? (
                   <div className="px-2 py-1 h-6 rounded-full bg-yellow-500 text-black flex flex-row items-center justify-center">
                     <TriangleAlert className="w-4 h-4 mr-2" /> There seems to be
                     an upstream issue. The numbers displayed may be inaccurate.
