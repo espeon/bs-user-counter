@@ -46,7 +46,7 @@ export function useUserStats() {
 
     const fetchData = async () => {
       try {
-        const response = await fetch("https://bsky-stats.lut.li/");
+        const response = await fetch("https://bcounter-api.nat.vg/");
         if (!response.ok) throw new Error("API request failed");
 
         const data = await response.json();
